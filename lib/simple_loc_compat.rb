@@ -337,7 +337,12 @@ module ArkanisDevelopmentCompat::SimpleLocalization #:nodoc:
       def ll(*sections)
         ArkanisDevelopmentCompat::SimpleLocalization::Language.app_scoped(*sections)
       end
-      
+
+      # Defines a global shortcut for the Language#app_not_scoped method.
+      def lnc(*sections)
+        ArkanisDevelopmentCompat::SimpleLocalization::Language.app_not_scoped(*sections)
+      end
+
       # The global shortcut for the Language#with_app_scope method.
       def l_scope(*sections, &block)
         ArkanisDevelopmentCompat::SimpleLocalization::Language.with_app_scope(*sections, &block)
