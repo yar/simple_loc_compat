@@ -1,0 +1,15 @@
+=Set of i18n helper methods compatible with Simple Localization
+
+{Simple Localization}[http://www.simple-localization.arkanis.de] was a popular i18n plugin for Rails in pre-2.2 era. One of its killer features that competitors lacked was support for deeply nested namespaces which helped keep the translations organized. Unfortunately, the author announced the end of development of that plugin in October 2008.
+
+Here you can see a small plugin that recreates the neat helper methods of Simple Localization for the Rails-2.2+ built-in i18n engine.
+
+Precisely:
+
+ll(:my_phrase, :macro_one => "Qwerty", :macro_two => "Azerty"):: translation for the key :my_phrase with two macro substitutions
+ll(:foo, :bar, :qux):: translation for the key :qux in namespace foo.bar
+lc(:qux):: translation for the key :qux in namespace pages.index if the current controller is <em>pages</em> and the current action is <em>index</em>
+l_scope(:foo, :bar):: creates a block with namespace foo.bar. All ll() and lc() calls inside are adjusted to use this namespace (in addition to root or automatically-calculated one)
+lnc():: like ll(), but ignores the surrounding l_scope(), always starting from the root namespace
+
+Please see i18n_db_admin[http://github.com/yar/i18n_db_admin] for usage example.
