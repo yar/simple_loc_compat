@@ -74,6 +74,7 @@ module ArkanisDevelopmentCompat
         end
         
         alias_method :entry, :entry! # Exceptions are handled well by Rails i18n itself
+        alias_method :[], :entry
       end
     end
   end
@@ -144,6 +145,79 @@ end
 # 
 
 module ArkanisDevelopmentCompat::SimpleLocalization #:nodoc:
+
+
+  module LocalizedModelAttributes
+    def self.included(base)
+      base.class_eval do
+        include(InstanceMethods)
+        attribute_method_suffix '_localized', '_localized='
+      end
+    end
+
+    class Helper
+      include Singleton
+      include ActionView::Helpers::NumberHelper
+    end
+
+    module InstanceMethods
+      private
+        def attribute_localized(attribute_name)
+          attribute_value = send(attribute_name)
+          column = self.class.columns_hash[attribute_name]
+
+          case column.type
+            when :date: localize_date(attribute_value)
+            when :datetime: localize_datetime(attribute_value)
+            when :float, :integer: localize_number(attribute_value)
+            when :decimal: localize_number(attribute_value, column.scale)
+            else attribute_value
+          end
+        end
+
+        def attribute_localized=(attribute_name, new_attribute_value)
+          send "#{attribute_name}=", case self.class.columns_hash[attribute_name].type
+            when :date: parse_localized_date(new_attribute_value)
+            when :datetime: parse_localized_datetime(new_attribute_value)
+            when :float: parse_localized_number(new_attribute_value, :to_f)
+            when :decimal: parse_localized_number(new_attribute_value, :to_d)
+            when :integer: parse_localized_number(new_attribute_value, :to_i)
+            else new_attribute_value
+          end
+        end
+
+        def parse_localized_date(loc_date)
+          return if loc_date.blank?
+          (Date.strptime(loc_date, Language[:date, :formats][:attributes])).to_date
+        end
+
+        def parse_localized_datetime(loc_date)
+          return if loc_date.blank?
+          (DateTime.strptime(loc_date, Language[:time, :formats][:attributes])).to_time
+        end
+
+        def parse_localized_number(loc_number, type_cast)
+          return if loc_number.blank?
+          loc_number.to_s.gsub(Language[:number, :format, :delimiter], '').gsub(Language[:number, :format, :separator], '.').send(type_cast)
+        end
+
+        def localize_date(date)
+          return if date.blank?
+          I18n.localize date, :format => :attributes
+        end
+
+        def localize_datetime(datetime)
+          return if datetime.blank?
+          I18n.localize datetime, :format => :attributes
+        end
+
+        def localize_number(number, options = { })
+          return if number.blank?
+          Helper.instance.number_with_precision(number, options)
+        end
+    end
+  end
+
   module LocalizedApplication #:nodoc:
     
     # This module will extend the ArkanisDevelopment::SimpleLocalization::Language
@@ -438,6 +512,8 @@ module ArkanisDevelopmentCompat::SimpleLocalization #:nodoc:
   end
 end
 
+
+
 ArkanisDevelopmentCompat::SimpleLocalization::Language.send :extend, ArkanisDevelopmentCompat::SimpleLocalization::LocalizedApplication::Language
 
 Object.send :include, ArkanisDevelopmentCompat::SimpleLocalization::LocalizedApplication::GlobalHelpers
@@ -446,3 +522,4 @@ ActionController::Base.send :include, ArkanisDevelopmentCompat::SimpleLocalizati
 ActiveRecord::Base.send :extend, ArkanisDevelopmentCompat::SimpleLocalization::LocalizedApplication::ContextSensetiveHelpers
 ActiveRecord::Base.send :include, ArkanisDevelopmentCompat::SimpleLocalization::LocalizedApplication::ContextSensetiveHelpers
 ActionView::Base.send :include, ArkanisDevelopmentCompat::SimpleLocalization::LocalizedApplication::ContextSensetiveHelpers
+ActiveRecord::Base.send :include, ArkanisDevelopmentCompat::SimpleLocalization::LocalizedModelAttributes
